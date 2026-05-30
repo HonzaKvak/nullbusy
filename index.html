@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NullBusy — Multitool</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f3ee;
+      --surface: #ffffff;
+      --border: #e2dfd8;
+      --text: #1a1915;
+      --text-muted: #7a7870;
+      --accent: #2a2a2a;
+      --accent-light: #f0ede6;
+      --highlight: #c8f060;
+      --highlight-dark: #a8d040;
+      --radius: 14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(245, 243, 238, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--highlight-dark);
+      display: inline-block;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--text);
+      background: var(--accent-light);
+    }
+
+    .nav-links a.active {
+      color: var(--text);
+    }
+
+    /* ── MAIN ── */
+    main { flex: 1; position: relative; z-index: 1; }
+
+    .section { display: none; }
+    .section.visible { display: block; }
+
+    /* ── HOME ── */
+    #home {
+      padding: 0;
+    }
+
+    .hero {
+      min-height: calc(100vh - 64px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 14px 6px 10px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge .pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f0a000;
+      position: relative;
+    }
+
+    .hero-badge .pulse::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background: #f0a000;
+      opacity: 0.3;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3.5rem, 10vw, 8rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .hero h1 span {
+      display: inline-block;
+      background: var(--highlight);
+      border-radius: 10px;
+      padding: 0 16px;
+      color: var(--text);
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 3rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 13px 28px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .btn-primary:hover { background: #333; transform: translateY(-2px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 12px 28px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .btn-outline:hover { border-color: var(--text); transform: translateY(-2px); }
+
+    /* decorative blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    .blob-1 {
+      width: 400px; height: 400px;
+      background: var(--highlight);
+      opacity: 0.22;
+      top: -80px; right: -100px;
+    }
+
+    .blob-2 {
+      width: 300px; height: 300px;
+      background: #c0e8ff;
+      opacity: 0.25;
+      bottom: 50px; left: -60px;
+    }
+
+    /* features strip */
+    .features-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      padding: 2rem 2rem;
+      transition: background 0.2s;
+    }
+
+    .feature-card:hover { background: var(--accent-light); }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .feature-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .feature-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* status section */
+    .status-section {
+      padding: 5rem 2.5rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .status-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .status-section h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 1.2rem;
+    }
+
+    .status-section p {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 640px;
+    }
+
+    .progress-bar-wrap {
+      margin-top: 2.5rem;
+      background: var(--border);
+      border-radius: 100px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--highlight-dark), var(--highlight));
+      border-radius: 100px;
+      animation: growBar 2s 0.8s ease forwards;
+    }
+
+    @keyframes growBar {
+      to { width: 23%; }
+    }
+
+    .progress-label {
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ── GENERIC SECTION WRAPPER ── */
+    .inner-section {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 5rem 2.5rem;
+    }
+
+    .section-eyebrow {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    /* empty state card */
+    .empty-card {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 4rem 2.5rem;
+      text-align: center;
+      margin-top: 2.5rem;
+      background: var(--surface);
+    }
+
+    .empty-card .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 380px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* ── MODULES ── */
+    .modules-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 600px;
+    }
+
+    /* ── DOWNLOAD ── */
+    .download-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 600px;
+    }
+
+    .notify-box {
+      margin-top: 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .notify-box h4 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .notify-box p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .notify-input-wrap {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .notify-input-wrap input {
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 10px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 210px;
+    }
+
+    .notify-input-wrap input:focus { border-color: var(--text); }
+
+    .notify-input-wrap button {
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 10px 22px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .notify-input-wrap button:hover { background: #333; }
+
+    /* ── CONTACT ── */
+    .contact-grid {
+      margin-top: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .contact-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .contact-card:hover { border-color: #aaa; transform: translateY(-3px); }
+
+    .contact-card-icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      background: var(--accent-light);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .contact-card h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .contact-card a {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .contact-card a:hover { text-decoration: underline; }
+
+    .contact-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 560px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 1.8rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      background: var(--surface);
+    }
+
+    footer .footer-brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: -0.02em;
+    }
+
+    footer .footer-copy {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--text);
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 999;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#" onclick="showSection('home')">
+      <span class="dot"></span>NullBusy
+    </a>
+    <ul class="nav-links">
+      <li><a onclick="showSection('home')" class="active" data-section="home">Home</a></li>
+      <li><a onclick="showSection('modules')" data-section="modules">Modules</a></li>
+      <li><a onclick="showSection('download')" data-section="download">Download</a></li>
+      <li><a onclick="showSection('contact')" data-section="contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <!-- HOME -->
+    <section id="home" class="section visible">
+      <div class="hero">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+
+        <div class="hero-badge">
+          <span class="pulse"></span>
+          Currently in development
+        </div>
+
+        <h1>The only tool<br>you'll ever<br><span>need.</span></h1>
+
+        <p class="hero-sub">
+          NullBusy is a modular multitool built for developers, power users, and anyone
+          tired of juggling a dozen separate apps. One interface. Zero distractions.
+        </p>
+
+        <div class="hero-cta">
+          <button class="btn-primary" onclick="showSection('modules')">Explore Modules</button>
+          <button class="btn-outline" onclick="showSection('contact')">Get Notified</button>
+        </div>
+      </div>
+
+      <div class="features-strip">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Blazing Fast</h3>
+          <p>Every operation designed to run lean and quick, so you spend less time waiting.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧩</div>
+          <h3>Modular by Design</h3>
+          <p>Install only what you need. Modules are self-contained and independently updated.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>Cross-Platform</h3>
+          <p>Windows, macOS, Linux — NullBusy works wherever you do, without compromise.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Privacy First</h3>
+          <p>No telemetry. No accounts. No surprises. Your data stays exactly where it belongs.</p>
+        </div>
+      </div>
+
+      <div class="status-section">
+        <div class="status-label">Development Status</div>
+        <h2>We're cooking something good.</h2>
+        <p>
+          NullBusy is being built from scratch with a clear vision: replace the clutter of
+          one-purpose tools with a single, fast, extensible platform. We're still early,
+          but the foundation is solid and the roadmap is ambitious. Stay tuned — this is going
+          to be worth the wait.
+        </p>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <p class="progress-label">~23% complete &mdash; Core architecture in progress</p>
+      </div>
+    </section>
+
+    <!-- MODULES -->
+    <section id="modules" class="section">
+      <div class="inner-section fade-in">
+        <div class="section-eyebrow">Modules</div>
+        <h2 class="section-title">Extend your toolkit.</h2>
+        <p class="modules-desc">
+          NullBusy is built around a plugin-style module system. Each module adds a focused
+          set of features — file utilities, network tools, converters, generators and more.
+          Modules will be distributed through an integrated registry, making installation
+          a single click.
+        </p>
+
+        <div class="empty-card">
+          <div class="empty-icon">📦</div>
+          <h3>No modules available yet</h3>
+          <p>
+            The module system is still under construction. The first official modules
+            will drop alongside the initial public release. Check back soon!
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOWNLOAD -->
+    <section id="download" class="section">
+      <div class="inner-section fade-in">
+        <div class="section-eyebrow">Download</div>
+        <h2 class="section-title">Ready when it's ready.</h2>
+        <p class="download-desc">
+          NullBusy is not yet available for download. We're working on the first stable
+          release and want to make sure it's solid before putting it in your hands.
+          No rushed alpha builds, no broken installers — just a clean, working release
+          when the time is right.
+        </p>
+
+        <div class="empty-card">
+          <div class="empty-icon">🚀</div>
+          <h3>No version available yet</h3>
+          <p>
+            There are currently no builds available for any platform. The first release
+            will support Windows, macOS, and Linux simultaneously. We'll announce it
+            right here when it's live.
+          </p>
+        </div>
+
+        <div class="notify-box">
+          <div>
+            <h4>Want a heads-up when we launch?</h4>
+            <p>Drop your email and we'll notify you the moment a download goes live.</p>
+          </div>
+          <div class="notify-input-wrap">
+            <input type="email" id="notify-email" placeholder="you@example.com" />
+            <button onclick="handleNotify()">Notify Me</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section">
+      <div class="inner-section fade-in">
+        <div class="section-eyebrow">Contact</div>
+        <h2 class="section-title">Let's talk.</h2>
+        <p class="contact-desc">
+          Have a question, a suggestion, or just want to say hi? We're happy to hear from
+          you. Whether you're a curious user, a potential contributor, or a fellow developer
+          — reach out, we don't bite.
+        </p>
+
+        <div class="contact-grid">
+          <div class="contact-card">
+            <div class="contact-card-icon">✉️</div>
+            <div>
+              <h4>Email</h4>
+              <a href="mailto:nullbusy@seznam.cz">nullbusy@seznam.cz</a>
+            </div>
+          </div>
+          <div class="contact-card">
+            <div class="contact-card-icon">💬</div>
+            <div>
+              <h4>Response time</h4>
+              <span style="font-size:0.95rem;font-weight:500;">Usually within 48 hours</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <span class="footer-brand">NullBusy</span>
+    <span class="footer-copy">© 2026 NullBusy. All rights reserved.</span>
+  </footer>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+      document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+
+      const sec = document.getElementById(id);
+      if (sec) {
+        sec.classList.add('visible');
+        // re-trigger fade for non-home sections
+        sec.querySelectorAll('.fade-in').forEach(el => {
+          el.style.animation = 'none';
+          el.offsetHeight; // reflow
+          el.style.animation = '';
+        });
+      }
+
+      const link = document.querySelector(`.nav-links a[data-section="${id}"]`);
+      if (link) link.classList.add('active');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function handleNotify() {
+      const val = document.getElementById('notify-email').value.trim();
+      if (!val || !val.includes('@')) {
+        showToast('Please enter a valid email address.');
+        return;
+      }
+      document.getElementById('notify-email').value = '';
+      showToast('Got it! We\'ll let you know when NullBusy launches. 🚀');
+    }
+  </script>
+</body>
+</html>
